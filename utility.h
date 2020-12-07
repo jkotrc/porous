@@ -1,31 +1,39 @@
 #pragma once
+#include <string>
 #include <vector>
-#include <cstddef>
-#include <atomic>
+#include <chrono>
+#include <iostream>
 
 namespace porous {
+    using std::chrono::high_resolution_clock;
+    struct Timer {
+        high_resolution_clock::time_point start;
+        high_resolution_clock::time_point end;
+        
+        std::string message;
+        Timer(std::string msg) {
+            message=msg;
+            start = high_resolution_clock::now();
+        }
+        void now() {
+            end = high_resolution_clock::now();
+            int64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+            std::cout << message << " took " << duration << "ms\n";
+        }
+        ~Timer() {
+            end = high_resolution_clock::now();
+            int64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+            std::cout << message << " took " << duration << "ms\n";
+        }
 
-    struct double3 {
-        double x,y,z;
     };
-
-    struct DataEntry {
+    struct double2 {
+        double x,y;
+    };
+    struct InputData {
         double energy;
-        int position_length;
-        double3* position;
-    };
-
-
-    class DataBuffer {
-        private:
-            int current;    //used by the processor to keep track of what was already done
-            int n_entries; //todo: make this atomic
-            std::vector<std::byte> _buffer;
-        public:
-            //it should not be possible to free_used and call next at the same time
-            DataBuffer(int n_entries);
-            ~DataBuffer();
-            void add(DataEntry& entry);
-            DataEntry* next();
+        std::vector<double2> position;
+        InputData(int n){position=std::vector<double2>(n);}
+        InputData()=default;
     };
 }
