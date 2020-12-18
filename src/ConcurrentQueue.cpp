@@ -4,62 +4,77 @@
 
 #include <cassert>
 
-using namespace porous;
-ConcurrentQueue::ConcurrentQueue() {
+/*
+Circular queue
+start front=rear=0
 
+add ==> buffer[front]=element
+if (front == n-1) {set front=0 if rear>0}
+if (front == rear-1) {return}
+front++ 
+*/
+using namespace porous;
+
+
+ConcurrentQueue::ConcurrentQueue() : ConcurrentQueue(10) {}
+ConcurrentQueue::ConcurrentQueue(int max_size) : m_size(max_size), m_rear(-1), m_front(0), m_currentsize(0) {
+    m_buffer = new porous::InputData[m_size];
+}
+ConcurrentQueue::~ConcurrentQueue() {
+    delete[] m_buffer;
 }
 void ConcurrentQueue::enqueue(porous::InputData const& item) {
-    m_queue.push(item);
-    m_idxmax++;
+    std::lock_guard<std::mutex> lck(m_mtx);
+    m_rear = (m_rear+1)%m_size;
+    if (m_currentsize==m_size) {
+        throw QueueFullException();
+    }
+    m_buffer[m_rear] = item;
+    m_currentsize++;
 }
+
 std::vector<InputData> ConcurrentQueue::dequeue_available() {
+    std::lock_guard<std::mutex> lck(m_mtx);
     std::vector<InputData> available;
-    while (m_idxread < m_idxmax) {
-        available.push_back(m_queue.front());
-        m_queue.pop();
-        m_idxread++;
+    while (m_currentsize > 0) {
+        available.push_back(m_buffer[m_front]);
+        m_front = (m_front+1)%m_size;
+        m_currentsize--;
     }
     return available;
 }
+bool ConcurrentQueue::isFull() {
+    return (m_rear+1 == m_front);
+}
 void ConcurrentQueue::finish() {
     m_finished.store(true);
-    const bool fin = m_finished.load();
-    assert(fin == true);
 }
 bool ConcurrentQueue::isFinished() {
     const bool fin = m_finished.load();
     return fin;
 }
 int ConcurrentQueue::currentSize() {
-    return m_queue.size();
+    return m_currentsize;
 }
 
-/*
-expect -- continue test regardless
-assert -- stop and fail test
-
-ASSERT_EQ(x.length(),y.length) << "vectors x and y are of inequal length!!";
-ASSERT_TRUE
-GT,LT,GE,LE
-*/
-TEST(ConcQueue, DISABLED_BasicOperations) {
+TEST(ConcQueue, BasicOperations) {
     InputData dat;
     dat.energy=1.0;
     std::vector<double2> pos;
     pos.push_back({1.0,2.0});
 
-    ConcurrentQueue q;
+    ConcurrentQueue q(4);
+    bool exception=false;
     for (int i = 0; i < 5; i++) {
-        q.enqueue(dat);
+        try {
+         q.enqueue(dat);
+        } catch(const QueueFullException& ex) {
+            std::cout << ex.what() << std::endl;
+            exception=true;
+        }
     }
-    ASSERT_EQ(q.currentSize(), 5);
+    ASSERT_TRUE(exception);
+    ASSERT_EQ(q.currentSize(), 4);
     std::vector<InputData> res = q.dequeue_available();
-    ASSERT_EQ(res.size(),(size_t)5);
-}
-
-TEST(ConcQueue, ThreadSafety) {
-    InputData dat;
-    dat.energy=1.0;
-
-
+    ASSERT_EQ(res.size(),(size_t)4);
 }

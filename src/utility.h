@@ -15,6 +15,11 @@ namespace porous {
             message=msg;
             start = high_resolution_clock::now();
         }
+        int64_t timenow() {
+            end = high_resolution_clock::now();
+            int64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+            return duration;
+        }
         void now() {
             end = high_resolution_clock::now();
             int64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();

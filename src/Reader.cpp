@@ -18,11 +18,22 @@ namespace {
     }
     void threaded_read(ConcurrentQueue* entries, std::vector<std::string> const& files) {
         for (int i = 0; i < files.size(); i++) {
-            InputFile in(files[i]);
-            InputData datum;
-            datum.energy=in.readEnergy();
-            datum.position=std::move(in.readPositions()); //is this correct?
-            entries->enqueue(datum);
+            try {
+                InputFile in(files[i]);
+                InputData datum;
+                datum.energy=in.readEnergy();
+                datum.position=std::move(in.readPositions()); //is this correct?
+                try {
+                    entries->enqueue(datum);
+                } catch(QueueFullException& e) {
+                    i--;
+                    std::this_thread::yield();
+                }
+            } catch(std::exception& e) {
+                printf("%s\n",e.what());
+                printf("Exception reading input file... skipping\n");
+                continue;
+            }
         }
         entries->finish();
     }
@@ -33,12 +44,9 @@ Reader::~Reader() {
     m_readthread.join();
 }
 
-Reader::Reader(std::string path) {
+Reader::Reader(std::string path, std::shared_ptr<ConcurrentQueue> queue) : m_queue(queue) {
     m_paths = lst_directories(path);
-}
-
-void Reader::begin() {
-    m_readthread = std::thread(threaded_read, &m_queue, m_paths);
+    m_readthread = std::thread(threaded_read, m_queue.get(), m_paths);
 }
 
 Reader::Reader(Reader const& cp) {
@@ -49,34 +57,20 @@ int Reader::getFileCount() {
     return this->m_paths.size();
 }
 
-ConcurrentQueue* Reader::getQueue() {
-    return &m_queue;
+std::shared_ptr<ConcurrentQueue>& Reader::getQueue() {
+    return m_queue;
 }
 
-std::vector<porous::InputData> Reader::get_available() {
-    return m_queue.dequeue_available();
-}
-
-bool Reader::isFinished() {
-    const bool fin = m_queue.isFinished();
-    if (fin) {
-        m_readthread.join();
-        return true;
-    }
-    return fin;
-//    return m_queue.isFinished();
-}
-
-TEST(TestReader, Works) {
-    Reader r("../samples");
-    r.begin();
-    while(true){
-        if (auto fetch=r.get_available(); fetch.size() > 0) {
+TEST(TestReader, DoesItWork) {
+    std::shared_ptr<ConcurrentQueue> queue(new ConcurrentQueue);
+    Reader r("../samples",queue);
+    while(true) {
+        if (auto fetch=queue->dequeue_available(); fetch.size() > 0) {
             for (InputData& dat : fetch) {
                 ASSERT_GE(dat.position.size(),0);
             }
         } else if (fetch.size() == 0) {
-            const bool fin = r.isFinished();
+            const bool fin = queue->isFinished();
             if (fin) break;
             std::this_thread::yield();
         }

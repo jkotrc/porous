@@ -7,7 +7,7 @@ using namespace porous;
 using namespace H5;
 
 InputFile::InputFile(std::string const& path) : H5File(path,H5F_ACC_RDONLY) {
-    std::cout << "InputFile instantiated. Implement error checking eventually\n";
+    
 }
 InputFile::~InputFile() {
     this->close();

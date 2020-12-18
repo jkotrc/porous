@@ -15,6 +15,7 @@ constexpr double sq(const double x) {
 }
 
 namespace {
+    uint32_t n_entries=0;
     inline void V(uint8_t* buffer, const std::vector<double2>& positions) {
         Timer t("potential computation");
         for (int j = 0; j < image_dimension; j++) {
@@ -29,27 +30,25 @@ namespace {
                 ret*=255;
                 buffer[j*400+i]=ret;
             }
+            
         }
+        printf("Entry %u completed\n",n_entries);
     }
 }
 
-
-Writer::Writer(Reader const& reader,std::string outfilename) : m_reader(reader) {
-    m_outfile = H5File(outfilename,H5F_ACC_TRUNC);
-    m_dataset = PorousDataSet(m_outfile, m_reader.getFileCount(),image_dimension);
+Writer::Writer(ConcurrentQueue* queue,int n_files,std::string outfilename) : m_queue(queue) {
+    m_outfile = H5File(outfilename, H5F_ACC_TRUNC);
+    m_dataset = PorousDataSet(m_outfile, n_files,image_dimension);
     m_buffer = new uint8_t[image_dimension*image_dimension];
     m_dataset.setBuffer(m_buffer);
-    m_reader.begin();
 }
 
-Writer::~Writer() {
-
-}
+Writer::~Writer() {}
 
 void Writer::begin_write() {
     while(true) {
-        if(auto entries = m_reader.get_available(); entries.size() == 0) {
-            const bool fin = m_reader.isFinished();
+        if(auto entries = m_queue->dequeue_available(); entries.size() == 0) {
+            const bool fin = m_queue->isFinished();
             if(fin){
                 std::cout << "Done writing!\n";
                 return;
@@ -65,7 +64,8 @@ void Writer::begin_write() {
 }
 
 TEST(TestWriter, writingtest) {
-    Reader r("../samples");
-    Writer w(r,"../writer_out.h5");
+    std::shared_ptr<ConcurrentQueue> queue(new ConcurrentQueue);
+    Reader r("../samples",queue);
+    Writer w(queue.get(),r.getFileCount(),"../writer_out.h5");
     w.begin_write();
 }

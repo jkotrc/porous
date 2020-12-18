@@ -7,11 +7,11 @@ using namespace porous;
 class Writer {
     private:
         uint8_t* m_buffer;
-        Reader m_reader;
+        ConcurrentQueue* m_queue;
         H5::H5File m_outfile;
         PorousDataSet m_dataset;
     public:
-        Writer(Reader const& reader,std::string outfilename);//this is just a sketch
+        Writer(ConcurrentQueue* queue,int n_files,std::string outfilename);
         ~Writer();
         void begin_write();
 };

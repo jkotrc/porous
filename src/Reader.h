@@ -5,19 +5,15 @@
 #include "ConcurrentQueue.h"
 #include "InputFile.h"
 
-//lstdirectories, readFile in an anonymous namespace
 class Reader {
     private:
         std::vector<std::string> m_paths;
-        ConcurrentQueue m_queue;
+        std::shared_ptr<ConcurrentQueue> m_queue;
         std::thread m_readthread;
     public:
-        Reader(std::string path);
+        Reader(std::string path, std::shared_ptr<ConcurrentQueue> queue);
         Reader(Reader const& cp);
-        int getFileCount();
-        void begin();
-        ConcurrentQueue* getQueue();
         ~Reader();
-        std::vector<porous::InputData> get_available();
-        bool isFinished();
+        int getFileCount();
+        std::shared_ptr<ConcurrentQueue>& getQueue();
 };
