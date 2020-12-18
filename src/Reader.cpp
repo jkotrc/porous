@@ -23,9 +23,7 @@ namespace {
                 InputData datum;
                 datum.energy=in.readEnergy();
                 datum.position=std::move(in.readPositions()); //is this correct?
-                try {
-                    entries->enqueue(datum);
-                } catch(QueueFullException& e) {
+                if(!entries->enqueue(datum)) {
                     i--;
                     std::this_thread::yield();
                 }

@@ -1,8 +1,13 @@
 #include "PorousDataSet.h"
-#include "InputFile.h"
 #include <stdio.h>
 #include <gtest/gtest.h>
+
 using namespace H5;
+
+PorousDataSet::PorousDataSet() {
+    H5File def("default.h5", H5F_ACC_TRUNC);
+    PorousDataSet(def, 100, 256);
+}
 
 PorousDataSet::PorousDataSet(H5File& parent, int length, int image_dimension) : m_imagedim(image_dimension) {
     const hsize_t scaldim[1]={length};
@@ -10,7 +15,6 @@ PorousDataSet::PorousDataSet(H5File& parent, int length, int image_dimension) : 
     
     const hsize_t one[1] = {1};
     m_energymemspace=DataSpace(1,one);
-
 
     uint8_t fillval=0;
     DSetCreatPropList plist;
@@ -45,15 +49,15 @@ void PorousDataSet::addEntry(double energy) {
 
         m_index++;
     }
-       catch( FileIException error )
+       catch( FileIException error)
    {
     error.printErrorStack();
    }
-   catch( DataSetIException error )
+   catch( DataSetIException error)
    {
     error.printErrorStack();
    }
-   catch( DataSpaceIException error )
+   catch( DataSpaceIException error)
    {
     error.printErrorStack();
    }

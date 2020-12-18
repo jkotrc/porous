@@ -43,4 +43,15 @@ namespace porous {
         InputData(int n){position=std::vector<double2>(n);}
         InputData()=default;
     };
+
+    struct InputDataSet {
+        std::vector<double> energy;
+        std::vector<porous::double2> position;
+        std::vector<int> indices;
+        inline void add(double E, std::vector<double2> const&& pos) {
+            energy.push_back(E);
+            auto it = std::next(pos.begin(),pos.size());
+            std::move(pos.begin(),it,std::back_inserter(position));
+        }
+    };
 }

@@ -4,15 +4,6 @@
 
 #include <cassert>
 
-/*
-Circular queue
-start front=rear=0
-
-add ==> buffer[front]=element
-if (front == n-1) {set front=0 if rear>0}
-if (front == rear-1) {return}
-front++ 
-*/
 using namespace porous;
 
 
@@ -23,14 +14,15 @@ ConcurrentQueue::ConcurrentQueue(int max_size) : m_size(max_size), m_rear(-1), m
 ConcurrentQueue::~ConcurrentQueue() {
     delete[] m_buffer;
 }
-void ConcurrentQueue::enqueue(porous::InputData const& item) {
+bool ConcurrentQueue::enqueue(porous::InputData const& item) {
     std::lock_guard<std::mutex> lck(m_mtx);
     m_rear = (m_rear+1)%m_size;
     if (m_currentsize==m_size) {
-        throw QueueFullException();
+        return false;
     }
     m_buffer[m_rear] = item;
     m_currentsize++;
+    return true;
 }
 
 std::vector<InputData> ConcurrentQueue::dequeue_available() {
@@ -58,23 +50,20 @@ int ConcurrentQueue::currentSize() {
 }
 
 TEST(ConcQueue, BasicOperations) {
-    InputData dat;
-    dat.energy=1.0;
-    std::vector<double2> pos;
-    pos.push_back({1.0,2.0});
-
-    ConcurrentQueue q(4);
-    bool exception=false;
-    for (int i = 0; i < 5; i++) {
-        try {
-         q.enqueue(dat);
-        } catch(const QueueFullException& ex) {
-            std::cout << ex.what() << std::endl;
-            exception=true;
-        }
+    InputData* dat = new InputData[100];
+    for (int i = 0; i < 100; i++) {
+        dat[i].energy = (double)i;
+        dat[i].position.push_back({(double) i, (double) i});
     }
-    ASSERT_TRUE(exception);
-    ASSERT_EQ(q.currentSize(), 4);
+    ConcurrentQueue q(98);
+    int fail_count=0;
+
+    for (int i = 0; i < 100; i++) {
+        fail_count+=(int)!q.enqueue(dat[i]);
+    }
+    ASSERT_EQ(fail_count,2);
+
+    ASSERT_EQ(q.currentSize(), 98);
     std::vector<InputData> res = q.dequeue_available();
-    ASSERT_EQ(res.size(),(size_t)4);
+    ASSERT_EQ(res.size(),size_t{98});
 }

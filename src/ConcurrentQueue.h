@@ -6,18 +6,10 @@
 #include <mutex>
 #include "utility.h"
 
-class QueueFullException : public std::exception {
-    public:
-    virtual const char* what() const throw() 
-    {
-        return "Attempted appending to full queue!";
-    }
-};
-
 class ConcurrentQueue {
     private:
         porous::InputData* m_buffer;
-        int m_size;//,m_front,m_rear;
+        int m_size;
         std::mutex m_mtx;
         int m_front;
         int m_rear;
@@ -27,7 +19,7 @@ class ConcurrentQueue {
         ConcurrentQueue(int max_size);
         ConcurrentQueue();
         ~ConcurrentQueue();
-        void enqueue(porous::InputData const& item);
+        bool enqueue(porous::InputData const& item);
         std::vector<porous::InputData> dequeue_available();
         void finish();
         bool isFinished();
