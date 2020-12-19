@@ -1,5 +1,5 @@
 #include "Writer.h"
-#include "Reader.h"
+#include "ThreadedReader.h"
 
 #include <gtest/gtest.h>
 #include <cmath>
@@ -36,7 +36,7 @@ namespace {
     }
 }
 
-Writer::Writer(ConcurrentQueue* queue,int n_files,std::string outfilename) : m_queue(queue) {
+Writer::Writer(porous::ConcurrentQueue* queue,int n_files,std::string outfilename) : m_queue(queue) {
     m_outfile = H5File(outfilename, H5F_ACC_TRUNC);
     m_dataset = PorousDataSet(m_outfile, n_files,image_dimension);
     m_buffer = new uint8_t[image_dimension*image_dimension];
@@ -64,8 +64,8 @@ void Writer::begin_write() {
 }
 
 TEST(TestWriter, writingtest) {
-    std::shared_ptr<ConcurrentQueue> queue(new ConcurrentQueue);
-    Reader r("../samples",queue);
+    std::shared_ptr<porous::ConcurrentQueue> queue(new porous::ConcurrentQueue);
+    ThreadedReader r("../samples",queue);
     Writer w(queue.get(),r.getFileCount(),"../writer_out.h5");
     w.begin_write();
 }

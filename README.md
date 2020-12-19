@@ -5,6 +5,20 @@
 
 Porous is a work in progress program that processes the [Big Graphene dataset](https://nrc-digital-repository.canada.ca/eng/view/object/?id=9f09901d-0736-4204-a35d-0c88ffb8da3b) which consists of DFT calculations of ground state energy for around 500,000 samples of graphene with random pores, made for training an [Extensive Deep Neural Network](https://github.com/millskyle/extensive_deep_neural_networks). The program  collects all the samples into one hdf5 file and computes the image of the graphene from an array of points with a potential well used in [this publication](https://pubs.rsc.org/en/content/articlelanding/2019/SC/C8SC04578J#!divAbstract).
 
+## Project Structure
+The project is divided into three major sections:
+- commonlib: some common classes for dealing with the porous dataset
+- threaded: first attempt at optimal data processing with a reader thread and a processing thread
+- cuda: parallelized processing
+
+## Dependencies
+- libhdf5-cpp
+- Cuda
+- CMake 3.0.0+
+- Google Test
+
+all included as CMake packages
+
 ## Setup
 to set up cmake, do
 

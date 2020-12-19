@@ -1,5 +1,5 @@
-#include "Reader.h"
-#include "ConcurrentQueue.h"
+#include "ThreadedReader.h"
+
 #include <filesystem>
 #include <gtest/gtest.h>
 using namespace porous;
@@ -16,16 +16,15 @@ namespace {
         std::cout << "There are " << ret.size() << " to read\n";
         return ret;
     }
-    void threaded_read(ConcurrentQueue* entries, std::vector<std::string> const& files) {
+    void threaded_read(porous::ConcurrentQueue* entries, std::vector<std::string> const& files) {
         for (int i = 0; i < files.size(); i++) {
             try {
                 InputFile in(files[i]);
                 InputData datum;
                 datum.energy=in.readEnergy();
                 datum.position=std::move(in.readPositions()); //is this correct?
-                try {
-                    entries->enqueue(datum);
-                } catch(QueueFullException& e) {
+                if(!entries->enqueue(datum))
+                {
                     i--;
                     std::this_thread::yield();
                 }
@@ -39,31 +38,31 @@ namespace {
     }
 }
 
-Reader::~Reader() {
+ThreadedReader::~ThreadedReader() {
     if (m_readthread.joinable())
     m_readthread.join();
 }
 
-Reader::Reader(std::string path, std::shared_ptr<ConcurrentQueue> queue) : m_queue(queue) {
+ThreadedReader::ThreadedReader(std::string path, std::shared_ptr<porous::ConcurrentQueue> queue) : m_queue(queue) {
     m_paths = lst_directories(path);
     m_readthread = std::thread(threaded_read, m_queue.get(), m_paths);
 }
 
-Reader::Reader(Reader const& cp) {
+ThreadedReader::ThreadedReader(ThreadedReader const& cp) {
     this->m_paths=cp.m_paths;
 }
 
-int Reader::getFileCount() {
+int ThreadedReader::getFileCount() {
     return this->m_paths.size();
 }
 
-std::shared_ptr<ConcurrentQueue>& Reader::getQueue() {
+std::shared_ptr<porous::ConcurrentQueue>& ThreadedReader::getQueue() {
     return m_queue;
 }
 
-TEST(TestReader, DoesItWork) {
-    std::shared_ptr<ConcurrentQueue> queue(new ConcurrentQueue);
-    Reader r("../samples",queue);
+TEST(TestThreadedReader, DoesItWork) {
+    std::shared_ptr<porous::ConcurrentQueue> queue(new porous::ConcurrentQueue);
+    ThreadedReader r("../samples",queue);
     while(true) {
         if (auto fetch=queue->dequeue_available(); fetch.size() > 0) {
             for (InputData& dat : fetch) {

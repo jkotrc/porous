@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <gtest/gtest.h>
 using namespace H5;
+using namespace porous;
 
 PorousDataSet::PorousDataSet(H5File& parent, int length, int image_dimension) : m_imagedim(image_dimension) {
     const hsize_t scaldim[1]={length};
